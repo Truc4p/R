@@ -1,0 +1,17 @@
+```{r}
+install.packages("readxl")
+install.packages("dplyr")
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+```
+
+```{r}
+data <- read_excel("ori/input.xlsx")
+```
+
+```{r}
+
+```

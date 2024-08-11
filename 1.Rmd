@@ -1,0 +1,539 @@
+```{r}
+install.packages("ggplot2")
+install.packages("readr")
+install.packages("readxl")
+install.packages("dplyr")
+install.packages("tidyr")
+
+# Draw Correlation Matrix 
+install.packages("reshape2")
+
+# Correlation Matrix with CorrPlot
+install.packages("corrplot")
+
+library(ggplot2)
+library(readr)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(corrplot)
+```
+
+```{r}
+# Read the Excel file
+excel_content <- read_excel("e-shop clothing 2008.xlsx")
+
+
+# Split the 1st row to create all column names
+all_columns = strsplit(colnames(excel_content), ";")[[1]]
+
+# Split the data by semicolon (;) delimiter
+df <- excel_content %>%
+  separate(col = colnames(excel_content)[1],
+           into = c(all_columns),
+           sep = ";", fill = 'right')
+df
+```
+
+```{r}
+# Save the extracted data for further use
+write.csv(df, "df.csv", row.names = FALSE)
+```
+
+```{r}
+# Drop the column "page 2 (clothing model)" and "year" from the dataframe
+df <- df[, !(colnames(df) == "year") ]
+df <- df[, !(colnames(df) == "page 2 (clothing model)") ]
+
+#conver to numeric
+df <- as.data.frame(lapply(df, as.integer))
+```
+
+```{r}
+# Rename the "order(sells)" column to "click_stream"
+colnames(df)[colnames(df) == "order.sells."] <- "click_stream"
+colnames(df)[colnames(df) == "session.ID"] <- "session_ID"
+
+# Add a new column product_sold and fill data for it 
+df <- df %>%
+  group_by(session_ID) %>%
+  mutate(product_sold = ifelse(click_stream == max(click_stream), 1, 0)) %>%
+  ungroup()
+```
+
+```{r}
+df
+```
+
+```{r}
+# Add a new column revenue  
+df <- df %>%
+  mutate(revenue = product_sold * price)
+df
+```
+
+```{r}
+# Calculate the correlation matrix
+cor_matrix <- cor(df)
+
+# Convert the correlation matrix to long format
+cor_long <- reshape2::melt(cor_matrix)
+
+# Plot the correlation matrix using ggplot2
+ggplot(cor_long, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                      midpoint = 0, limits = c(-1, 1),
+                      guide = guide_colorbar(title = "Correlation")) +
+  labs(title = "Correlation Matrix", x = "", y = "") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3)
+```
+
+```{r}
+# Calculate the correlation matrix 
+cor_matrix <- cor(df)
+# Visualize 
+
+corrplot(cor_matrix, method = "color", order = "hclust",
+         col = colorRampPalette(c("blue", "white", "red"))(100),
+         addCoef.col = "black", number.cex = 0.7,
+         tl.cex = 0.8, tl.col = "black", tl.srt = 45,
+         diag = FALSE, cl.pos = "n", addcolorlabel = "yes",
+         col.label = colorRampPalette(c("blue", "white", "red"))(100),
+         title = "Correlation Matrix")
+```
+
+```{r}
+# Summarize the total revenue by month
+monthly_revenue <- df %>%
+  group_by(month) %>%
+  summarise(total_revenue = sum(revenue, na.rm = TRUE)) %>%
+  arrange(month)
+
+# Create a bar chart of total revenue for each month
+ggplot(monthly_revenue, aes(x = factor(month), y = total_revenue)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total Revenue by Month", 
+       x = "Month", 
+       y = "Total Revenue") +
+  theme_minimal()
+```
+
+```{r}
+# Filter the data for April (month "4") and group by day
+daily_revenue_april <- df %>%
+  filter(month == 4) %>%
+  group_by(day) %>%
+  summarise(total_revenue = sum(revenue, na.rm = TRUE)) %>%
+  arrange(day)
+
+# Create a bar chart of total revenue for each day in April
+ggplot(daily_revenue_april, aes(x = factor(day), y = total_revenue)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total revenue by Day in April", 
+       x = "Day", 
+       y = "Total revenue") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by month
+monthly_product_sold <- df %>%
+  group_by(month) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(month)
+
+# Create a bar chart of total product_sold for each month
+ggplot(monthly_product_sold, aes(x = factor(month), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by Month", 
+       x = "Month", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Filter for only month "8" (August) and get unique days
+august_days <- df %>%
+  filter(month == 8) %>%
+  select(day) %>%
+  distinct() %>%
+  arrange(day)
+
+# Display the unique days in August
+print(august_days)
+```
+
+```{r}
+# Filter the data for August (month "8") and group by day
+daily_product_sold_august <- df %>%
+  filter(month == 8) %>%
+  group_by(day) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(day)
+
+# Create a bar chart of total product_sold for each day in August
+ggplot(daily_product_sold_august, aes(x = factor(day), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total Product Sold by Day in August", 
+       x = "Day", 
+       y = "Total Product Sold") +
+  theme_minimal()
+```
+
+```{r}
+# Filter the data for April (month "4") and group by day
+daily_product_sold_april <- df %>%
+  filter(month == 4) %>%
+  group_by(day) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(day)
+
+# Create a bar chart of total product_sold for each day in April
+ggplot(daily_product_sold_april, aes(x = factor(day), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total Product Sold by Day in April", 
+       x = "Day", 
+       y = "Total Product Sold") +
+  theme_minimal()
+```
+
+```{r}
+# Filter the data for May (month "5") and group by day
+daily_product_sold_may <- df %>%
+  filter(month == 5) %>%
+  group_by(day) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(day)
+
+# Create a bar chart of total product_sold for each day in May
+ggplot(daily_product_sold_may, aes(x = factor(day), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total Product Sold by Day in May", 
+       x = "Day", 
+       y = "Total Product Sold") +
+  theme_minimal()
+```
+
+```{r}
+# Filter the data for June (month "6") and group by day
+daily_product_sold_june <- df %>%
+  filter(month == 6) %>%
+  group_by(day) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(day)
+
+# Create a bar chart of total product_sold for each day in June
+ggplot(daily_product_sold_june, aes(x = factor(day), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total Product Sold by Day in June", 
+       x = "Day", 
+       y = "Total Product Sold") +
+  theme_minimal()
+```
+
+```{r}
+# Create a sequence of all days in August
+august_days_sequence <- data.frame(day = 1:31)
+
+# Merge with the original dataset to keep all days in August
+august_data <- august_days_sequence %>%
+  left_join(df %>% filter(month == 8), by = "day")
+
+# Plot all days of August 
+ggplot(august_data, aes(x = day)) +
+  geom_bar(stat = "count", fill = "lightgreen") +
+  labs(title = "All Days in August", 
+       x = "Day", 
+       y = "Count (Dummy)") +
+  theme_minimal()
+
+# the chart shows how many times the day appeared in dataset
+```
+
+```{r}
+# Create a sequence of all days in April
+april_days_sequence <- data.frame(day = 1:31)
+
+# Merge with the original dataset to keep all days in April
+april_data <- april_days_sequence %>%
+  left_join(df %>% filter(month == 4), by = "day")
+
+# Plot all days of April 
+ggplot(april_data, aes(x = day)) +
+  geom_bar(stat = "count", fill = "lightgreen") +
+  labs(title = "All Days in April", 
+       x = "Day", 
+       y = "Count (Dummy)") +
+  theme_minimal()
+```
+
+```{r}
+# Create a sequence of all days in May
+may_days_sequence <- data.frame(day = 1:31)
+
+# Merge with the original dataset to keep all days in May
+may_data <- may_days_sequence %>%
+  left_join(df %>% filter(month == 5), by = "day")
+
+# Plot all days of May 
+ggplot(may_data, aes(x = day)) +
+  geom_bar(stat = "count", fill = "lightgreen") +
+  labs(title = "All Days in May", 
+       x = "Day", 
+       y = "Count (Dummy)") +
+  theme_minimal()
+```
+
+```{r}
+# Create a sequence of all days in June
+june_days_sequence <- data.frame(day = 1:31)
+
+# Merge with the original dataset to keep all days in June
+june_data <- june_days_sequence %>%
+  left_join(df %>% filter(month == 6), by = "day")
+
+# Plot all days of June 
+ggplot(june_data, aes(x = day)) +
+  geom_bar(stat = "count", fill = "lightgreen") +
+  labs(title = "All Days in June", 
+       x = "Day", 
+       y = "Count (Dummy)") +
+  theme_minimal()
+```
+
+```{r}
+# Create a sequence of all days in July
+july_days_sequence <- data.frame(day = 1:31)
+
+# Merge with the original dataset to keep all days in July
+july_data <- july_days_sequence %>%
+  left_join(df %>% filter(month == 6), by = "day")
+
+# Plot all days of July 
+ggplot(july_data, aes(x = day)) +
+  geom_bar(stat = "count", fill = "lightgreen") +
+  labs(title = "All Days in July", 
+       x = "Day", 
+       y = "Count (Dummy)") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by day
+product_sold_by_day <- df %>%
+  group_by(day) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(day)
+
+# Create a bar chart of total product_sold for each day
+ggplot(product_sold_by_day, aes(x = factor(day), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by day", 
+       x = "day", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by click_stream
+product_sold_by_click_stream <- df %>%
+  group_by(click_stream) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(click_stream)
+
+# Create a bar chart of total product_sold for each click_stream
+ggplot(product_sold_by_click_stream, aes(x = factor(click_stream), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by click_stream", 
+       x = "click_stream", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by country
+product_sold_by_country <- df %>%
+  group_by(country) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(country)
+
+# Create a bar chart of total product_sold for each country
+ggplot(product_sold_by_country, aes(x = factor(country), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by country", 
+       x = "country", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by colour
+product_sold_by_colour <- df %>%
+  group_by(colour) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(colour)
+
+# Create a bar chart of total product_sold for each colour
+ggplot(product_sold_by_colour, aes(x = factor(colour), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by colour", 
+       x = "colour", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Rename the "page.1..main.category." column 
+colnames(df)[colnames(df) == "page.1..main.category."] <- "category"
+```
+
+```{r}
+# Summarize the total product_sold by category
+product_sold_by_category <- df %>%
+  group_by(category) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(category)
+
+# Create a bar chart of total product_sold for each category
+ggplot(product_sold_by_category, aes(x = factor(category), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by category", 
+       x = "category", 
+       y = "Total product_sold") +
+  theme_minimal()
+
+# main product category:
+# 1-trousers
+# 2-skirts
+# 3-blouses
+# 4-sale
+```
+
+```{r}
+# Summarize the total revenue by category
+revenue_by_category <- df %>%
+  group_by(category) %>%
+  summarise(total_revenue = sum(revenue, na.rm = TRUE)) %>%
+  arrange(category)
+
+# Create a bar chart of total revenue for each category
+ggplot(revenue_by_category, aes(x = factor(category), y = total_revenue)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total revenue by category", 
+       x = "category", 
+       y = "Total revenue") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by location
+product_sold_by_location <- df %>%
+  group_by(location) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(location)
+
+# Create a bar chart of total product_sold for each location
+ggplot(product_sold_by_location, aes(x = factor(location), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by location", 
+       x = "location", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by model.photography
+product_sold_by_model_photography <- df %>%
+  group_by(model.photography) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(model.photography)
+
+# Create a bar chart of total product_sold for each model.photography
+ggplot(product_sold_by_model_photography, aes(x = factor(model.photography), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by model.photography", 
+       x = "model.photography", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Rename the "price.2" column 
+colnames(df)[colnames(df) == "price.2"] <- "price2"
+```
+
+```{r}
+# Summarize the total product_sold by price2
+product_sold_by_price2 <- df %>%
+  group_by(price2) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(price2)
+
+# Create a bar chart of total product_sold for each price2
+ggplot(product_sold_by_price2, aes(x = factor(price2), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by price2", 
+       x = "price2", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+# Summarize the total product_sold by page
+product_sold_by_page <- df %>%
+  group_by(page) %>%
+  summarise(total_product_sold = sum(product_sold, na.rm = TRUE)) %>%
+  arrange(page)
+
+# Create a bar chart of total product_sold for each page
+ggplot(product_sold_by_page, aes(x = factor(page), y = total_product_sold)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total product_sold by page", 
+       x = "page", 
+       y = "Total product_sold") +
+  theme_minimal()
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

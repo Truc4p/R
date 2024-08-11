@@ -1,0 +1,184 @@
+#### 
+
+```{r}
+# Load necessary libraries
+install.packages("ggplot2")
+install.packages("readr")
+install.packages("readxl")
+
+library(ggplot2)
+library(readr)
+library(readxl)
+```
+
+#### Task d: Descriptive Analysis
+
+```{r}
+# Load the input dataset
+file_path2 <- "input.xlsx"
+data <- read_excel(file_path2)
+
+# Check for non-numeric values and convert salary column to numeric
+data$salary <- as.numeric(as.character(data$salary))
+
+# Calculate descriptive statistics
+mean_salary <- mean(data$salary, na.rm = TRUE)
+median_salary <- median(data$salary, na.rm = TRUE)
+
+# Function to calculate the mode
+calculate_mode <- function(x) {
+  freq <- table(x)
+  max_freq <- max(freq)
+  
+  # Check if the maximum frequency is 1, indicating all values are unique
+  if (max_freq == 1) {
+    return(NaN)
+  } else {
+    return(as.numeric(names(freq)[freq == max_freq]))
+  }
+}
+
+# Calculate the mode of the salary column
+mode_salary <- calculate_mode(data$salary)
+
+std_dev_salary <- sd(data$salary, na.rm = TRUE)
+variance_salary <- var(data$salary, na.rm = TRUE)
+
+# Print the results
+cat("Descriptive Analysis:\n")
+cat("Mean Salary:", mean_salary, "\n")
+cat("Median Salary:", median_salary, "\n")
+cat("Mode Salary:", mode_salary, "\n")
+cat("Standard Deviation of Salary:", std_dev_salary, "\n")
+cat("Variance of Salary:", variance_salary, "\n")
+```
+
+```{r}
+# # Calculate the mode
+# library(modeest)
+# mode_salary <- mfv(data$salary)
+```
+
+#### Task e: Star Wars Dataset Analysis
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+
+# Load the Star Wars dataset
+data("starwars")
+
+# i. Extract actors with specific eye color and height criteria
+filtered_actors <- starwars %>% filter(eye_color != "black" & height > 150)
+
+# Print the filtered actors
+print(filtered_actors)
+```
+
+```{r}
+# ii. Add BMI column and plot height against BMI
+starwars <- starwars %>% mutate(BMI = mass / ((height / 100) ^ 2))
+
+# Print the starwars
+print(starwars)
+```
+
+```{r}
+# Identify rows with missing or out-of-range values
+missing_values <- starwars %>% filter(is.na(height) | is.na(BMI))
+print(missing_values)
+```
+
+```{r}
+cleaned_starwars <- starwars %>% filter(!is.na(height) & !is.na(BMI))
+
+print(cleaned_starwars)
+```
+
+```{r}
+# Plot height against BMI
+ggplot(cleaned_starwars, aes(x = height, y = BMI)) + 
+  geom_point() + 
+  labs(title = "Height vs BMI", x = "Height (cm)", y = "BMI") +
+  theme_minimal()
+
+# Save the plot
+ggsave("height_vs_bmi.png")
+```
+
+```{r}
+# i. Extract actors with height < 100cm
+filtered_actors1 <- cleaned_starwars %>% filter(height < 100)
+
+# Print the filtered actors
+print(filtered_actors1)
+```
+
+```{r}
+# Find the character with the highest BMI
+highest_bmi <- cleaned_starwars %>%
+  filter(BMI == max(BMI, na.rm = TRUE))
+
+# Display the character with the highest BMI
+print(highest_bmi)
+```
+
+```{r}
+# Find the character with the highest BMI
+highest_bmi <- cleaned_starwars %>%
+  filter(BMI == max(BMI, na.rm = TRUE))
+
+# Delete the row of the character with the highest BMI
+starwars_without_outliner <- cleaned_starwars %>%
+  filter(BMI != max(BMI, na.rm = TRUE))
+
+# Display the updated dataset
+print(starwars_without_outliner)
+
+```
+
+```{r}
+# Plot height against BMI of starwars_without_outliner
+ggplot(starwars_without_outliner, aes(x = height, y = BMI)) + 
+  geom_point() + 
+  labs(title = "Height vs BMI", x = "Height (cm)", y = "BMI") +
+  theme_minimal()
+
+# Save the plot
+ggsave("height_vs_bmi_without_outliner.png")
+```
+
+```{r}
+# Find the character with the lowest BMI
+lowest_bmi <- starwars %>%
+  filter(BMI == min(BMI, na.rm = TRUE))
+
+# Display the character with the lowest BMI
+print(lowest_bmi)
+```
+
+```{r}
+# Find the character with the lowest height
+lowest_height <- starwars %>%
+  filter(height == min(height, na.rm = TRUE))
+
+# Display the character with the lowest height
+print(lowest_height)
+```
+
+```{r}
+# i. Extract actors with height < 125cm
+filtered_actors2 <- starwars %>% filter(height < 125)
+
+# Print the filtered actors
+print(filtered_actors2)
+```
+
+```{r}
+# i. Extract actors with 125cm < height < 150cm
+filtered_actors3 <- starwars %>% filter(height > 125 & height < 150)
+
+# Print the filtered actors
+print(filtered_actors3)
+```
